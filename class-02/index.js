@@ -1,13 +1,14 @@
 const express = require("express");
 const app = express();
-const dotenv = require("dotenv");  // Added 'dotenv' import
 
-require("dotenv").config();  // Load environment variables from .env file
+require("dotenv").config();
 const PORT = process.env.PORT || 4000;
 
-// JSON parsing middleware
-app.use(express.json());
+//cookie-parser - what is this and why we need this ?
+const cookieParser = require("cookie-parser");
+app.use(cookieParser());
 
+app.use(express.json());
 
 // MongoDB connection
 const mongoDataBase = require("./config/dataBase");

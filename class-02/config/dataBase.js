@@ -13,7 +13,9 @@ function Connect() {
         console.log("Connected to the database");
     })
     .catch((error) => {
-        console.error("Error connecting to the database:", error);
+        console.log("Error connecting to the database:", error);
+        console.error(error);
+        process.exit(1);
     });
 }
 

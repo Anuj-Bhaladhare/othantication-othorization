@@ -2,45 +2,49 @@
 const bcrypt = require("bcrypt");
 const User = require("../modals/userSchema");
 const jwt = require("jsonwebtoken");
+// const { options } = require("../routes/user");
 require("dotenv").config();
 
-// Signup route handler
+
+
+// ======================Signup route handler=============================
+
 exports.signUp = async(req, res) => {
     try {
+        //get data
         const { name, email, password, role } = req.body;
-        
         // Check if user already exists
-        const existing = await User.findOne({ email });
-        if (existing) {
+        const existingUser = await User.findOne({ email });
+        
+        if (existingUser) {
             return res.status(400).json({
                 success: false,
                 message: "User Already Exists",
             });
         }
 
+        // Secure the password
+        let hashedPassword;
         try {
-            // Secure the password
-            const hashedPass = await bcrypt.hash(password, 10);
-
-            // Create user entry
-            const user = await User.create({
-                name,
-                email,
-                password: hashedPass,
-                role,
-            });
-
-            return res.status(200).json({
-                success: true,
-                message: "User Created Successfully...!",
-            });
-        } catch (error) {
-            console.error(`User creation unsuccessful due to ${error}`);
+            hashedPassword = await bcrypt.hash(password, 10);  
+        } 
+        catch (error) {
             return res.status(500).json({
                 success: false,
-                message: "User creation unsuccessful",
+                message: "Error in Hassing Password",
             });
         }
+
+        // Create entry for user
+        const user = await User.create({
+            name, email, password:hashedPassword, role
+        });
+
+        return res.status(200).json({
+            success: true,
+            massage: "User Created SuccessFully...!",
+        });
+
     } catch (error) {
         console.error(`Signup unsuccessful due to ${error}`);
         return res.status(500).json({
@@ -53,23 +57,22 @@ exports.signUp = async(req, res) => {
 
 
 
-// login route handler
+// ============================= login route handler ===============================
+
 exports.login = async (req, res) => {
     try {
         // Fetch Data
         const { email, password } = req.body;
-
         // Validation of email and password
         if (!email || !password) {
             return res.status(400).json({
                 success: false,
-                message: "Please enter details carefully",
+                message:'PLease fill all the details carefully',
             });
         }
 
         // Check if user is registered in the database
-        const user = await User.findOne({ email });
-
+        let user = await User.findOne({ email });
         // If user is not registered in the database
         if (!user) {
             return res.status(401).json({
@@ -85,35 +88,42 @@ exports.login = async (req, res) => {
         };
 
         // Verify password and generate JWT token
-        const passwordMatch = await bcrypt.compare(password, user.password);
-        if (passwordMatch) {
+        if (await bcrypt.compare(password, user.password)) {
             // Password match
-            const token = jwt.sign(payload, process.env.JWT_SECRET, {
-                expiresIn: "2h",
-            });
+            let token = jwt.sign(payload, 
+                                process.env.JWT_SECRET, 
+                                {
+                                   expiresIn: "2h",
+                                }
+                            );
 
+            user = user.toObject();
             user.token = token;
             user.password = undefined;
 
             const option = {
                 expiresIn: new Date( Date.now() + 3 * 24 * 60 * 60 * 1000),
-                httpOnly: true
+                httpOnly: true,
             };
 
             res.cookie("token", token, option).status(200).json({
                 success: true,
                 token,
                 user,
-                message: "Logged in successfully.",
+                message: "User Logged in successfully.",
             });
-        } else {
+        } 
+        else {
+            // Password Do not Match
             return res.status(403).json({
                 success: false,
                 message: "Password does not match.",
             });
         }
 
-    } catch (error) {
+    } 
+    catch (error) {
+        // if sonthin went wrong
         console.log(error);
         res.status(500).json({
             success: false,
